@@ -45,6 +45,20 @@ class PostgreSQLConnection implements DatabaseConnection {
 
   constructor(connectionString: string) {
     const isProduction = process.env.NODE_ENV === 'production';
+    // Prefer IPv4 in production to avoid environments without IPv6 egress
+    if (isProduction && (dns as any).setDefaultResultOrder) {
+      try {
+        (dns as any).setDefaultResultOrder('ipv4first');
+      } catch {}
+    }
+    if (isProduction) {
+      try {
+        const parsed = new URL(connectionString);
+        console.log('[DB] Using PostgreSQL host:', parsed.hostname);
+      } catch (e) {
+        console.error('[DB] Invalid DATABASE_URL format. Expected URL like postgresql://user:pass@host:5432/db?sslmode=require');
+      }
+    }
     this.pool = new Pool({
       connectionString,
       ssl: isProduction ? { rejectUnauthorized: false } : false,

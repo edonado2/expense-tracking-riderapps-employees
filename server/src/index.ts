@@ -19,7 +19,8 @@ app.use(helmet());
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://your-netlify-site.netlify.app' // Replace with your actual Netlify URL
+    'https://your-netlify-site.netlify.app', // Replace with your actual Netlify URL
+    'https://your-render-backend-name.onrender.com' // Your Render backend URL
   ],
   credentials: true
 }));
