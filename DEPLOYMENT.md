@@ -38,13 +38,13 @@ This guide will help you deploy your Uber Calculator app to production using **1
    - **Name**: `uber-calculator-backend`
    - **Root Directory**: `server`
    - **Runtime**: `Node`
-   - **Build Command**: `npm install && npm run build`
+   - **Build Command**: `npm install` (TypeScript builds automatically)
    - **Start Command**: `npm start`
 5. **Set Environment Variables**:
    ```
    NODE_ENV=production
    PORT=5000
-   DATABASE_URL=postgresql://postgres:password@db.xxx.supabase.co:5432/postgres
+   DATABASE_URL=postgresql://postgres:password@db.xxx.supabase.co:5432/postgres?sslmode=require
    JWT_SECRET=your-super-secret-jwt-key
    ```
 6. **Deploy** - Render will automatically build and deploy
@@ -100,7 +100,7 @@ app.use(cors({
 ### Backend (Render)
 - `NODE_ENV=production`
 - `PORT=5000`
-- `DATABASE_URL=postgresql://postgres:password@db.xxx.supabase.co:5432/postgres`
+- `DATABASE_URL=postgresql://postgres:password@db.xxx.supabase.co:5432/postgres?sslmode=require`
 - `JWT_SECRET=your-secret-key`
 
 ### Frontend (Netlify)

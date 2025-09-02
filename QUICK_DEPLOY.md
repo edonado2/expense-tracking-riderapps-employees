@@ -14,7 +14,7 @@
 3. Configure:
    - **Name**: `uber-calculator-backend`
    - **Root Directory**: `server`
-   - **Build Command**: `npm install && npm run build`
+   - **Build Command**: `npm install` (TypeScript builds automatically)
    - **Start Command**: `npm start`
 4. Set Environment Variables:
    - `DATABASE_URL` = Your Supabase connection string
@@ -51,6 +51,21 @@
 - **Supabase free tier**: 500MB database + 2GB bandwidth
 - **Netlify free tier**: 100GB bandwidth/month
 - All services auto-sleep when not in use (saves hours)
+
+## 🔧 **Troubleshooting Common Issues:**
+
+### **Build Failures:**
+- ✅ **Build Command**: Use `npm install` only (not `npm run build`)
+- ✅ **Root Directory**: Must be `server` (not root)
+- ✅ **Node Version**: Render auto-detects (18.x)
+
+### **Database Connection:**
+- ✅ **DATABASE_URL**: Must include `?sslmode=require` for Supabase
+- ✅ **Format**: `postgresql://postgres:password@host:5432/postgres?sslmode=require`
+
+### **Environment Variables:**
+- ✅ **Required**: `DATABASE_URL`, `JWT_SECRET`
+- ✅ **Optional**: `NODE_ENV`, `PORT` (auto-set)
 
 ---
 
