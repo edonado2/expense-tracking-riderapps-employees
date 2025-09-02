@@ -39,11 +39,18 @@ app.get('/api/health', (req, res) => {
 });
 
 // Initialize database and start server
+console.log('🚀 Starting server initialization...');
+console.log('📁 Current directory:', process.cwd());
+console.log('🔧 Environment:', process.env.NODE_ENV);
+console.log('🌐 Port:', PORT);
+
 initializeDatabase().then(() => {
+  console.log('✅ Database initialized successfully');
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
   });
 }).catch((error) => {
-  console.error('Failed to initialize database:', error);
+  console.error('❌ Failed to initialize database:', error);
   process.exit(1);
 });

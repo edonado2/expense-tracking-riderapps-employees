@@ -3,7 +3,7 @@ services:
     name: uber-calculator-backend
     env: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm run render-build
     startCommand: npm start
     rootDir: server
     envVars:

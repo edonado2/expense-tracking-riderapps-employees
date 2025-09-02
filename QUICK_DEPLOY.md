@@ -55,9 +55,10 @@
 ## 🔧 **Troubleshooting Common Issues:**
 
 ### **Build Failures:**
-- ✅ **Build Command**: Use `npm install` only (not `npm run build`)
+- ✅ **Build Command**: Use `npm run render-build` (installs + builds)
 - ✅ **Root Directory**: Must be `server` (not root)
 - ✅ **Node Version**: Render auto-detects (18.x)
+- ✅ **TypeScript**: Builds to `dist/` folder automatically
 
 ### **Database Connection:**
 - ✅ **DATABASE_URL**: Must include `?sslmode=require` for Supabase

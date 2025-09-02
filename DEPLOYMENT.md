@@ -38,7 +38,7 @@ This guide will help you deploy your Uber Calculator app to production using **1
    - **Name**: `uber-calculator-backend`
    - **Root Directory**: `server`
    - **Runtime**: `Node`
-   - **Build Command**: `npm install` (TypeScript builds automatically)
+   - **Build Command**: `npm run render-build` (installs + builds TypeScript)
    - **Start Command**: `npm start`
 5. **Set Environment Variables**:
    ```
