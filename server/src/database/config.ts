@@ -1,4 +1,5 @@
 import { Pool, PoolClient } from 'pg';
+import dns from 'dns';
 import sqlite3 from 'sqlite3';
 
 export interface DatabaseConnection {
@@ -43,9 +44,17 @@ class PostgreSQLConnection implements DatabaseConnection {
   private pool: Pool;
 
   constructor(connectionString: string) {
+    const isProduction = process.env.NODE_ENV === 'production';
     this.pool = new Pool({
       connectionString,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      ssl: isProduction ? { rejectUnauthorized: false } : false,
+      // Force IPv4 in environments without IPv6 egress (e.g., some Render plans)
+      ...(isProduction
+        ? ({
+            lookup: (hostname: string, options: any, callback: any) =>
+              dns.lookup(hostname, { ...(options || {}), family: 4 }, callback)
+          } as any)
+        : {})
     });
   }
 
