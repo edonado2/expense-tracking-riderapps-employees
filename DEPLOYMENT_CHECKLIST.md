@@ -20,7 +20,7 @@
 - [ ] New Web Service → Connect GitHub repo
 - [ ] **Root Directory**: `server` (NOT root!)
   - [ ] **Build Command**: `npm run render-build` (installs + builds TypeScript)
-- [ ] **Start Command**: `npm start`
+- [ ] **Start Command**: `node dist/index.js`
 - [ ] Set Environment Variables:
   - [ ] `DATABASE_URL` = Supabase connection string
   - [ ] `JWT_SECRET` = Random string

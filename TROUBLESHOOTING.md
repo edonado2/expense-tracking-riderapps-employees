@@ -14,7 +14,7 @@ The TypeScript build process isn't working correctly, or the start command is wr
 ```yaml
 # In render.yaml
 buildCommand: npm run render-build
-startCommand: npm start
+startCommand: node dist/index.js
 ```
 
 #### **2. Verify Package.json Scripts**
@@ -82,11 +82,13 @@ npm run build
 ### **🚀 Deployment Checklist:**
 
 - [ ] **Build Command**: `npm run render-build`
-- [ ] **Start Command**: `npm start`
+- [ ] **Start Command**: `node dist/index.js`
 - [ ] **Root Directory**: `server`
 - [ ] **TypeScript**: Builds to `dist/` folder
 - [ ] **Entry Point**: `dist/index.js` exists
 - [ ] **Dependencies**: All installed correctly
+- [ ] **Procfile**: `web: node dist/index.js`
+- [ ] **Buildpacks**: `heroku/nodejs`
 
 ### **📞 Still Having Issues?**
 
