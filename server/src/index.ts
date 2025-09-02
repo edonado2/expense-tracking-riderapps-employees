@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import { initializeDatabase } from './database/init';
+import { initializeDatabase } from './database/init-new';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import rideRoutes from './routes/rides';
@@ -16,7 +16,13 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://your-netlify-site.netlify.app' // Replace with your actual Netlify URL
+  ],
+  credentials: true
+}));
 app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
