@@ -165,9 +165,9 @@ const UserMonthlySpending: React.FC = () => {
   }));
 
   const appUsageData = [
-    { name: 'Uber', value: currentMonth.uber_cost, rides: currentMonth.uber_rides, color: '#000000' },
-    { name: 'Lyft', value: currentMonth.lyft_cost, rides: currentMonth.lyft_rides, color: '#FF00BF' },
-    { name: 'Didi', value: currentMonth.didi_cost, rides: currentMonth.didi_rides, color: '#FF6B35' }
+    { name: 'Uber', value: currentMonth.uber_cost, rides: currentMonth.uber_rides, color: getAppColor('uber') },
+    { name: 'Lyft', value: currentMonth.lyft_cost, rides: currentMonth.lyft_rides, color: getAppColor('lyft') },
+    { name: 'Didi', value: currentMonth.didi_cost, rides: currentMonth.didi_rides, color: getAppColor('didi') }
   ].filter(app => app.value > 0);
 
   const selectedMonthData = selectedMonth ? 

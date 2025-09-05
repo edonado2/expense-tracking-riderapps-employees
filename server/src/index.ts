@@ -19,8 +19,8 @@ app.use(helmet());
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://your-netlify-site.netlify.app', // Replace with your actual Netlify URL
-    'https://your-render-backend-name.onrender.com' // Your Render backend URL
+    'https://uber-calculator-frontend.onrender.com', // Your Render frontend URL
+    'https://your-netlify-site.netlify.app' // Keep for Netlify if needed
   ],
   credentials: true
 }));

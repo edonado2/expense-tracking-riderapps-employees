@@ -103,10 +103,9 @@ const AdminDashboard: React.FC = () => {
   const pieData = stats?.app_usage.map(app => ({
     name: getAppName(app.app_name),
     value: app.total_cost,
-    count: app.ride_count
+    count: app.ride_count,
+    color: getAppColor(app.app_name)
   })) || [];
-
-  const COLORS = ['#000000', '#FF00BF', '#FF6B35'];
 
   return (
     <div className="space-y-6">
@@ -191,7 +190,7 @@ const AdminDashboard: React.FC = () => {
                     dataKey="value"
                   >
                     {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(value: number) => formatCurrency(value)} />

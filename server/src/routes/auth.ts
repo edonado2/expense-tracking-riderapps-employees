@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
-import { getDatabase } from '../database/init';
+import { getDatabase } from '../database/config';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { LoginRequest, RegisterRequest, AuthResponse, User } from '../types';
 
@@ -23,41 +23,37 @@ router.post('/login', [
     const { email, password }: LoginRequest = req.body;
     const db = getDatabase();
 
-    db.get(
+    const users = await db.query(
       'SELECT * FROM users WHERE email = ?',
-      [email],
-      (err, row: any) => {
-        if (err) {
-          return res.status(500).json({ error: 'Database error' });
-        }
-
-        if (!row || !bcrypt.compareSync(password, row.password)) {
-          return res.status(401).json({ error: 'Invalid credentials' });
-        }
-
-        const token = jwt.sign(
-          { userId: row.id, email: row.email },
-          JWT_SECRET,
-          { expiresIn: '24h' }
-        );
-
-        const user: User = {
-          id: row.id,
-          email: row.email,
-          name: row.name,
-          role: row.role,
-          department: row.department,
-          created_at: row.created_at,
-          updated_at: row.updated_at
-        };
-
-        const response: AuthResponse = { token, user };
-        res.json(response);
-      }
+      [email]
     );
-    db.close();
+
+    if (users.length === 0 || !bcrypt.compareSync(password, users[0].password)) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const row = users[0];
+    const token = jwt.sign(
+      { userId: row.id, email: row.email },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const user: User = {
+      id: row.id,
+      email: row.email,
+      name: row.name,
+      role: row.role,
+      department: row.department,
+      created_at: row.created_at,
+      updated_at: row.updated_at
+    };
+
+    const response: AuthResponse = { token, user };
+    res.json(response);
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -81,26 +77,24 @@ router.post('/register', authenticateToken, [
     const hashedPassword = bcrypt.hashSync(password, 10);
     const db = getDatabase();
 
-    db.run(
-      'INSERT INTO users (email, password, name, role, department) VALUES (?, ?, ?, ?, ?)',
-      [email, hashedPassword, name, 'employee', department || null],
-      function(err) {
-        if (err) {
-          if (err.message.includes('UNIQUE constraint failed')) {
-            return res.status(400).json({ error: 'Email already exists' });
-          }
-          return res.status(500).json({ error: 'Database error' });
-        }
+    try {
+      await db.query(
+        'INSERT INTO users (email, password, name, role, department) VALUES (?, ?, ?, ?, ?)',
+        [email, hashedPassword, name, 'employee', department || null]
+      );
 
-        res.status(201).json({ 
-          message: 'User created successfully',
-          userId: this.lastID 
-        });
+      res.status(201).json({ 
+        message: 'User created successfully'
+      });
+    } catch (dbError: any) {
+      if (dbError.message.includes('UNIQUE constraint failed') || dbError.message.includes('duplicate key')) {
+        return res.status(400).json({ error: 'Email already exists' });
       }
-    );
-    db.close();
+      throw dbError;
+    }
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Register error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

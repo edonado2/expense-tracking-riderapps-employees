@@ -1,30 +1,30 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
-import { getDatabase } from '../database/init';
+import { getDatabase } from '../database/config';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { CreateRideRequest, Ride } from '../types';
 
 const router = express.Router();
 
 // Get user's rides
-router.get('/', authenticateToken, (req: AuthRequest, res: express.Response) => {
-  const db = getDatabase();
-  
-  db.all(
-    `SELECT r.*, u.name as user_name 
-     FROM rides r 
-     JOIN users u ON r.user_id = u.id 
-     WHERE r.user_id = ? 
-     ORDER BY r.ride_date DESC`,
-    [req.user!.id],
-    (err, rows: any[]) => {
-      if (err) {
-        return res.status(500).json({ error: 'Database error' });
-      }
-      res.json(rows);
-    }
-  );
-  db.close();
+router.get('/', authenticateToken, async (req: AuthRequest, res: express.Response) => {
+  try {
+    const db = getDatabase();
+    
+    const rides = await db.query(
+      `SELECT r.*, u.name as user_name 
+       FROM rides r 
+       JOIN users u ON r.user_id = u.id 
+       WHERE r.user_id = ? 
+       ORDER BY r.ride_date DESC`,
+      [req.user!.id]
+    );
+
+    res.json(rides);
+  } catch (error) {
+    console.error('Error fetching rides:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Create new ride
@@ -36,7 +36,7 @@ router.post('/', authenticateToken, [
   body('duration_minutes').isInt({ min: 1 }),
   body('cost_usd').isFloat({ min: 0 }),
   body('ride_date').isISO8601()
-], (req: AuthRequest, res: express.Response) => {
+], async (req: AuthRequest, res: express.Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -46,9 +46,8 @@ router.post('/', authenticateToken, [
     const rideData: CreateRideRequest = req.body;
     const db = getDatabase();
 
-    db.run(
-      `INSERT INTO rides (user_id, app_name, pickup_location, destination, 
-                         distance_km, duration_minutes, cost_usd, ride_date, notes) 
+    await db.query(
+      `INSERT INTO rides (user_id, app_name, pickup_location, destination, distance_km, duration_minutes, cost_usd, ride_date, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.user!.id,
@@ -60,21 +59,13 @@ router.post('/', authenticateToken, [
         rideData.cost_usd,
         rideData.ride_date,
         rideData.notes || null
-      ],
-      function(err) {
-        if (err) {
-          return res.status(500).json({ error: 'Database error' });
-        }
-
-        res.status(201).json({ 
-          message: 'Ride created successfully',
-          rideId: this.lastID 
-        });
-      }
+      ]
     );
-    db.close();
+
+    res.status(201).json({ message: 'Ride created successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error creating ride:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -87,7 +78,7 @@ router.put('/:id', authenticateToken, [
   body('duration_minutes').optional().isInt({ min: 1 }),
   body('cost_usd').optional().isFloat({ min: 0 }),
   body('ride_date').optional().isISO8601()
-], (req: AuthRequest, res: express.Response) => {
+], async (req: AuthRequest, res: express.Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -95,146 +86,114 @@ router.put('/:id', authenticateToken, [
     }
 
     const rideId = parseInt(req.params.id);
-    const updateData = req.body;
     const db = getDatabase();
 
-    // First check if ride belongs to user
-    db.get(
+    // Check if ride exists and belongs to user
+    const existingRides = await db.query(
       'SELECT * FROM rides WHERE id = ? AND user_id = ?',
-      [rideId, req.user!.id],
-      (err, row: any) => {
-        if (err) {
-          return res.status(500).json({ error: 'Database error' });
-        }
-        if (!row) {
-          return res.status(404).json({ error: 'Ride not found' });
-        }
-
-        // Build update query dynamically
-        const fields = Object.keys(updateData).filter(key => updateData[key] !== undefined);
-        if (fields.length === 0) {
-          return res.status(400).json({ error: 'No fields to update' });
-        }
-
-        const setClause = fields.map(field => `${field} = ?`).join(', ');
-        const values = fields.map(field => updateData[field]);
-
-        db.run(
-          `UPDATE rides SET ${setClause} WHERE id = ? AND user_id = ?`,
-          [...values, rideId, req.user!.id],
-          function(err) {
-            if (err) {
-              return res.status(500).json({ error: 'Database error' });
-            }
-            res.json({ message: 'Ride updated successfully' });
-          }
-        );
-      }
+      [rideId, req.user!.id]
     );
-    db.close();
+
+    if (existingRides.length === 0) {
+      return res.status(404).json({ error: 'Ride not found' });
+    }
+
+    // Update ride
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+
+    Object.keys(req.body).forEach(key => {
+      if (req.body[key] !== undefined) {
+        updateFields.push(`${key} = ?`);
+        updateValues.push(req.body[key]);
+      }
+    });
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    updateValues.push(rideId);
+
+    await db.query(
+      `UPDATE rides SET ${updateFields.join(', ')} WHERE id = ?`,
+      updateValues
+    );
+
+    res.json({ message: 'Ride updated successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error updating ride:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Delete ride
-router.delete('/:id', authenticateToken, (req: AuthRequest, res: express.Response) => {
-  const rideId = parseInt(req.params.id);
-  const db = getDatabase();
+router.delete('/:id', authenticateToken, async (req: AuthRequest, res: express.Response) => {
+  try {
+    const rideId = parseInt(req.params.id);
+    const db = getDatabase();
 
-  db.run(
-    'DELETE FROM rides WHERE id = ? AND user_id = ?',
-    [rideId, req.user!.id],
-    function(err) {
-      if (err) {
-        return res.status(500).json({ error: 'Database error' });
-      }
-      if (this.changes === 0) {
-        return res.status(404).json({ error: 'Ride not found' });
-      }
-      res.json({ message: 'Ride deleted successfully' });
+    // Check if ride exists and belongs to user
+    const existingRides = await db.query(
+      'SELECT * FROM rides WHERE id = ? AND user_id = ?',
+      [rideId, req.user!.id]
+    );
+
+    if (existingRides.length === 0) {
+      return res.status(404).json({ error: 'Ride not found' });
     }
-  );
-  db.close();
+
+    await db.query('DELETE FROM rides WHERE id = ?', [rideId]);
+
+    res.json({ message: 'Ride deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting ride:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-// Get user's spending summary
-router.get('/summary', authenticateToken, (req: AuthRequest, res: express.Response) => {
-  const db = getDatabase();
-  
-  // Get total rides and cost
-  db.get(
-    `SELECT 
-       COUNT(*) as total_rides,
-       SUM(cost_usd) as total_cost,
-       AVG(cost_usd) as avg_cost
-     FROM rides 
-     WHERE user_id = ?`,
-    [req.user!.id],
-    (err, totals: any) => {
-      if (err) {
-        return res.status(500).json({ error: 'Database error' });
-      }
+// Get ride summary
+router.get('/summary', authenticateToken, async (req: AuthRequest, res: express.Response) => {
+  try {
+    const db = getDatabase();
+    
+    const summary = await db.query(
+      `SELECT 
+        COUNT(*) as total_rides,
+        SUM(cost_usd) as total_cost,
+        AVG(cost_usd) as avg_cost,
+        SUM(CASE WHEN app_name = 'uber' THEN 1 ELSE 0 END) as uber_rides,
+        SUM(CASE WHEN app_name = 'uber' THEN cost_usd ELSE 0 END) as uber_cost,
+        SUM(CASE WHEN app_name = 'lyft' THEN 1 ELSE 0 END) as lyft_rides,
+        SUM(CASE WHEN app_name = 'lyft' THEN cost_usd ELSE 0 END) as lyft_cost,
+        SUM(CASE WHEN app_name = 'didi' THEN 1 ELSE 0 END) as didi_rides,
+        SUM(CASE WHEN app_name = 'didi' THEN cost_usd ELSE 0 END) as didi_cost
+       FROM rides 
+       WHERE user_id = ?`,
+      [req.user!.id]
+    );
 
-      // Get breakdown by app
-      db.all(
-        `SELECT 
-           app_name,
-           COUNT(*) as count,
-           SUM(cost_usd) as cost
-         FROM rides 
-         WHERE user_id = ? 
-         GROUP BY app_name`,
-        [req.user!.id],
-        (err, appBreakdown: any[]) => {
-          if (err) {
-            return res.status(500).json({ error: 'Database error' });
-          }
+    const monthlyBreakdown = await db.query(
+      `SELECT 
+        strftime('%Y-%m', ride_date) as month,
+        COUNT(*) as rides,
+        SUM(cost_usd) as cost
+       FROM rides 
+       WHERE user_id = ? 
+       GROUP BY strftime('%Y-%m', ride_date)
+       ORDER BY month DESC
+       LIMIT 12`,
+      [req.user!.id]
+    );
 
-          // Get monthly breakdown
-          db.all(
-            `SELECT 
-               strftime('%Y-%m', ride_date) as month,
-               COUNT(*) as rides,
-               SUM(cost_usd) as cost
-             FROM rides 
-             WHERE user_id = ? 
-             GROUP BY strftime('%Y-%m', ride_date)
-             ORDER BY month DESC
-             LIMIT 12`,
-            [req.user!.id],
-            (err, monthlyBreakdown: any[]) => {
-              if (err) {
-                return res.status(500).json({ error: 'Database error' });
-              }
-
-              const ridesByApp = {
-                uber: { count: 0, cost: 0 },
-                lyft: { count: 0, cost: 0 },
-                didi: { count: 0, cost: 0 }
-              };
-
-              appBreakdown.forEach(app => {
-                ridesByApp[app.app_name as keyof typeof ridesByApp] = {
-                  count: app.count,
-                  cost: app.cost
-                };
-              });
-
-              res.json({
-                total_rides: totals.total_rides || 0,
-                total_cost: totals.total_cost || 0,
-                avg_cost: totals.avg_cost || 0,
-                rides_by_app: ridesByApp,
-                monthly_breakdown: monthlyBreakdown
-              });
-            }
-          );
-        }
-      );
-    }
-  );
-  db.close();
+    res.json({
+      ...summary[0],
+      monthly_breakdown: monthlyBreakdown
+    });
+  } catch (error) {
+    console.error('Error fetching ride summary:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 export default router;

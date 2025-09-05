@@ -105,12 +105,10 @@ const Dashboard: React.FC = () => {
   }
 
   const pieData = summary ? [
-    { name: 'Uber', value: summary.rides_by_app.uber.cost, count: summary.rides_by_app.uber.count },
-    { name: 'Lyft', value: summary.rides_by_app.lyft.cost, count: summary.rides_by_app.lyft.count },
-    { name: 'Didi', value: summary.rides_by_app.didi.cost, count: summary.rides_by_app.didi.count },
+    { name: 'Uber', value: summary.rides_by_app.uber.cost, count: summary.rides_by_app.uber.count, color: getAppColor('uber') },
+    { name: 'Lyft', value: summary.rides_by_app.lyft.cost, count: summary.rides_by_app.lyft.count, color: getAppColor('lyft') },
+    { name: 'Didi', value: summary.rides_by_app.didi.cost, count: summary.rides_by_app.didi.count, color: getAppColor('didi') },
   ].filter(item => item.value > 0) : [];
-
-  const COLORS = ['#000000', '#FF00BF', '#FF6B35'];
 
   return (
     <div className="space-y-6">
@@ -209,7 +207,7 @@ const Dashboard: React.FC = () => {
                     dataKey="value"
                   >
                     {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(value: number) => formatCurrency(value)} />
