@@ -13,7 +13,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 interface SpendingSummary {
   user_id: number;
-  user_name: string;
+  name: string;
+  email: string;
   department?: string;
   total_rides: number;
   total_cost: number;
@@ -105,7 +106,7 @@ const AdminSpending: React.FC = () => {
     .sort((a, b) => b.total_cost - a.total_cost)
     .slice(0, 10)
     .map(user => ({
-      name: user.user_name,
+      name: user.name || 'Unknown User',
       cost: user.total_cost,
       rides: user.total_rides
     }));
@@ -274,12 +275,12 @@ const AdminSpending: React.FC = () => {
                         <div className="flex-shrink-0 h-10 w-10">
                           <div className="h-10 w-10 rounded-full bg-primary-600 flex items-center justify-center">
                             <span className="text-sm font-medium text-white">
-                              {user.user_name.charAt(0).toUpperCase()}
+                              {user.name.charAt(0).toUpperCase()}
                             </span>
                           </div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{user.user_name}</div>
+                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
                         </div>
                       </div>
                     </td>
