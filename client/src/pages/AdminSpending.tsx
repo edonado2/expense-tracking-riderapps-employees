@@ -97,8 +97,8 @@ const AdminSpending: React.FC = () => {
   }
 
   // Calculate totals with proper number conversion
-  const totalSpending = spendingData.reduce((sum, user) => sum + (parseFloat(user.total_cost) || 0), 0);
-  const totalRides = spendingData.reduce((sum, user) => sum + (parseInt(user.total_rides.toString(), 10) || 0), 0);
+  const totalSpending = spendingData.reduce((sum, user) => sum + (Number(user.total_cost) || 0), 0);
+  const totalRides = spendingData.reduce((sum, user) => sum + (Number(user.total_rides) || 0), 0);
   const avgSpendingPerUser = spendingData.length > 0 ? totalSpending / spendingData.length : 0;
   
   console.log('Spending data:', spendingData);
@@ -296,7 +296,7 @@ const AdminSpending: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {(parseInt(user.total_rides.toString(), 10) || 0).toLocaleString()}
+                      {(Number(user.total_rides) || 0).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {formatCurrency(user.total_cost)}
@@ -381,7 +381,7 @@ const AdminSpending: React.FC = () => {
                   </div>
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <Car className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-gray-900">{(parseInt(selectedUser.total_rides.toString(), 10) || 0).toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-gray-900">{(Number(selectedUser.total_rides) || 0).toLocaleString()}</p>
                     <p className="text-sm text-gray-600">Total Rides</p>
                   </div>
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
