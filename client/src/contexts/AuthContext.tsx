@@ -64,15 +64,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
+    console.log('🔐 AuthContext: Starting login process...');
     try {
       const response = await authAPI.login(email, password);
+      console.log('🔐 AuthContext: Login response received:', response);
       const { token: newToken, user: userData } = response;
       
+      console.log('🔐 AuthContext: Setting token and user...');
       setToken(newToken);
       setUser(userData);
       localStorage.setItem('token', newToken);
       authAPI.setToken(newToken);
+      console.log('🔐 AuthContext: Login process completed successfully');
     } catch (error) {
+      console.error('🔐 AuthContext: Login failed:', error);
       throw error;
     }
   };

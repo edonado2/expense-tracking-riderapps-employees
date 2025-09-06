@@ -15,20 +15,32 @@ router.post('/login', [
   body('password').isLength({ min: 6 })
 ], async (req: express.Request, res: express.Response) => {
   try {
+    console.log('🔐 Login attempt:', req.body.email);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ Validation errors:', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { email, password }: LoginRequest = req.body;
     const db = getDatabase();
 
+    console.log('🔐 Querying database for user:', email);
     const users = await db.query(
       'SELECT * FROM users WHERE email = $1',
       [email]
     );
 
-    if (users.length === 0 || !bcrypt.compareSync(password, users[0].password)) {
+    console.log('🔐 Found users:', users.length);
+    if (users.length === 0) {
+      console.log('❌ No user found with email:', email);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const passwordMatch = bcrypt.compareSync(password, users[0].password);
+    console.log('🔐 Password match:', passwordMatch);
+    if (!passwordMatch) {
+      console.log('❌ Password mismatch for user:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -50,9 +62,10 @@ router.post('/login', [
     };
 
     const response: AuthResponse = { token, user };
+    console.log('✅ Login successful for user:', email);
     res.json(response);
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('❌ Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -2,6 +2,10 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+console.log('🔗 API_BASE_URL:', API_BASE_URL);
+console.log('🔗 REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+console.log('🔗 Environment:', process.env.NODE_ENV);
+
 class API {
   private client: AxiosInstance;
 
@@ -50,11 +54,21 @@ class API {
 
   // Auth API
   async login(email: string, password: string) {
-    const response: AxiosResponse = await this.client.post('/auth/login', {
-      email,
-      password,
-    });
-    return response.data;
+    console.log('🔐 Attempting login to:', `${this.client.defaults.baseURL}/auth/login`);
+    console.log('🔐 Email:', email);
+    try {
+      const response: AxiosResponse = await this.client.post('/auth/login', {
+        email,
+        password,
+      });
+      console.log('✅ Login successful:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Login failed:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+      throw error;
+    }
   }
 
   async getCurrentUser() {
