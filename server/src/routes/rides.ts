@@ -191,7 +191,7 @@ router.get('/summary', authenticateToken, async (req: AuthRequest, res: express.
         lyft: { count: 0, cost: 0 },
         didi: { count: 0, cost: 0 }
       },
-      monthly_breakdown: monthlyStats.map(stat => ({
+      monthly_breakdown: monthlyStats.map((stat: any) => ({
         month: new Date(stat.month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
         rides: stat.rides,
         cost: stat.cost
@@ -199,7 +199,7 @@ router.get('/summary', authenticateToken, async (req: AuthRequest, res: express.
     };
 
     // Populate app stats
-    appStats.forEach(stat => {
+    appStats.forEach((stat: any) => {
       if (summaryData.rides_by_app[stat.app_name as keyof typeof summaryData.rides_by_app]) {
         summaryData.rides_by_app[stat.app_name as keyof typeof summaryData.rides_by_app] = {
           count: stat.count,

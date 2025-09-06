@@ -237,7 +237,7 @@ router.get('/spending/:userId/monthly', authenticateToken, requireAdmin, async (
 
     res.json({
       user,
-      monthly_spending: monthlySpending.map(stat => ({
+      monthly_spending: monthlySpending.map((stat: any) => ({
         month: new Date(stat.month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
         rides: stat.rides,
         cost: stat.cost

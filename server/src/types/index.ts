@@ -33,6 +33,17 @@ export interface CreateRideRequest {
   notes?: string;
 }
 
+export interface UpdateRideRequest {
+  app_name?: 'uber' | 'lyft' | 'didi';
+  pickup_location?: string;
+  destination?: string;
+  distance_km?: number;
+  duration_minutes?: number;
+  cost_usd?: number;
+  ride_date?: string;
+  notes?: string;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
