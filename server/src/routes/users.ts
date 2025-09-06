@@ -7,7 +7,7 @@ const router = express.Router();
 // Get all users (Admin only)
 router.get('/', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
-    if (req.user?.role !== 'admin') {
+    if (req.user$1.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -26,7 +26,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: express.Respons
 // Get user by ID (Admin only)
 router.get('/:id', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
-    if (req.user?.role !== 'admin') {
+    if (req.user$1.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -34,7 +34,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res: express.Resp
     const db = getDatabase();
     
     const users = await db.query(
-      'SELECT id, email, name, role, department, created_at, updated_at FROM users WHERE id = ?',
+      'SELECT id, email, name, role, department, created_at, updated_at FROM users WHERE id = $1',
       [userId]
     );
 
@@ -52,7 +52,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res: express.Resp
 // Update user (Admin only)
 router.put('/:id', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
-    if (req.user?.role !== 'admin') {
+    if (req.user$1.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -62,7 +62,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res: express.Resp
 
     // Check if user exists
     const existingUsers = await db.query(
-      'SELECT * FROM users WHERE id = ?',
+      'SELECT * FROM users WHERE id = $1',
       [userId]
     );
 
@@ -71,7 +71,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res: express.Resp
     }
 
     await db.query(
-      'UPDATE users SET name = ?, role = ?, department = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE users SET name = $1, role = $2, department = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4',
       [name, role, department, userId]
     );
 
@@ -85,7 +85,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res: express.Resp
 // Delete user (Admin only)
 router.delete('/:id', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
-    if (req.user?.role !== 'admin') {
+    if (req.user$1.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -94,7 +94,7 @@ router.delete('/:id', authenticateToken, async (req: AuthRequest, res: express.R
 
     // Check if user exists
     const existingUsers = await db.query(
-      'SELECT * FROM users WHERE id = ?',
+      'SELECT * FROM users WHERE id = $1',
       [userId]
     );
 
@@ -103,10 +103,10 @@ router.delete('/:id', authenticateToken, async (req: AuthRequest, res: express.R
     }
 
     // Delete user's rides first
-    await db.query('DELETE FROM rides WHERE user_id = ?', [userId]);
+    await db.query('DELETE FROM rides WHERE user_id = $1', [userId]);
     
     // Delete user
-    await db.query('DELETE FROM users WHERE id = ?', [userId]);
+    await db.query('DELETE FROM users WHERE id = $1', [userId]);
 
     res.json({ message: 'User deleted successfully' });
   } catch (error) {

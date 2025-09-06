@@ -1,21 +1,20 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
-import { getDatabase } from '../database/config';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
-import { CreateRideRequest, Ride } from '../types';
+import { getDatabase } from '../database/config';
+import { CreateRideRequest, UpdateRideRequest } from '../types';
 
 const router = express.Router();
 
-// Get user's rides
+// Get all rides for the authenticated user
 router.get('/', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
     const db = getDatabase();
-    
     const rides = await db.query(
       `SELECT r.*, u.name as user_name 
-       FROM rides r 
-       JOIN users u ON r.user_id = u.id 
-       WHERE r.user_id = ? 
+       FROM rides r
+       JOIN users u ON r.user_id = u.id
+       WHERE r.user_id = $1 
        ORDER BY r.ride_date DESC`,
       [req.user!.id]
     );
@@ -27,15 +26,15 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: express.Respons
   }
 });
 
-// Create new ride
+// Create a new ride
 router.post('/', authenticateToken, [
-  body('app_name').isIn(['uber', 'lyft', 'didi']),
-  body('pickup_location').isLength({ min: 1 }),
-  body('destination').isLength({ min: 1 }),
-  body('distance_km').isFloat({ min: 0 }),
-  body('duration_minutes').isInt({ min: 1 }),
-  body('cost_usd').isFloat({ min: 0 }),
-  body('ride_date').isISO8601()
+  body('app_name').notEmpty().withMessage('App name is required'),
+  body('pickup_location').notEmpty().withMessage('Pickup location is required'),
+  body('destination').notEmpty().withMessage('Destination is required'),
+  body('distance_km').isNumeric().withMessage('Distance must be a number'),
+  body('duration_minutes').isInt().withMessage('Duration must be an integer'),
+  body('cost_usd').isNumeric().withMessage('Cost must be a number'),
+  body('ride_date').isISO8601().withMessage('Ride date must be a valid date')
 ], async (req: AuthRequest, res: express.Response) => {
   try {
     const errors = validationResult(req);
@@ -48,7 +47,7 @@ router.post('/', authenticateToken, [
 
     await db.query(
       `INSERT INTO rides (user_id, app_name, pickup_location, destination, distance_km, duration_minutes, cost_usd, ride_date, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         req.user!.id,
         rideData.app_name,
@@ -69,28 +68,15 @@ router.post('/', authenticateToken, [
   }
 });
 
-// Update ride
-router.put('/:id', authenticateToken, [
-  body('app_name').optional().isIn(['uber', 'lyft', 'didi']),
-  body('pickup_location').optional().isLength({ min: 1 }),
-  body('destination').optional().isLength({ min: 1 }),
-  body('distance_km').optional().isFloat({ min: 0 }),
-  body('duration_minutes').optional().isInt({ min: 1 }),
-  body('cost_usd').optional().isFloat({ min: 0 }),
-  body('ride_date').optional().isISO8601()
-], async (req: AuthRequest, res: express.Response) => {
+// Update a ride
+router.put('/:id', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const rideId = parseInt(req.params.id);
     const db = getDatabase();
 
     // Check if ride exists and belongs to user
     const existingRides = await db.query(
-      'SELECT * FROM rides WHERE id = ? AND user_id = ?',
+      'SELECT * FROM rides WHERE id = $1 AND user_id = $2',
       [rideId, req.user!.id]
     );
 
@@ -101,11 +87,13 @@ router.put('/:id', authenticateToken, [
     // Update ride
     const updateFields: string[] = [];
     const updateValues: any[] = [];
+    let paramIndex = 1;
 
     Object.keys(req.body).forEach(key => {
       if (req.body[key] !== undefined) {
-        updateFields.push(`${key} = ?`);
+        updateFields.push(`${key} = $${paramIndex}`);
         updateValues.push(req.body[key]);
+        paramIndex++;
       }
     });
 
@@ -116,7 +104,7 @@ router.put('/:id', authenticateToken, [
     updateValues.push(rideId);
 
     await db.query(
-      `UPDATE rides SET ${updateFields.join(', ')} WHERE id = ?`,
+      `UPDATE rides SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`,
       updateValues
     );
 
@@ -127,7 +115,7 @@ router.put('/:id', authenticateToken, [
   }
 });
 
-// Delete ride
+// Delete a ride
 router.delete('/:id', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
     const rideId = parseInt(req.params.id);
@@ -135,7 +123,7 @@ router.delete('/:id', authenticateToken, async (req: AuthRequest, res: express.R
 
     // Check if ride exists and belongs to user
     const existingRides = await db.query(
-      'SELECT * FROM rides WHERE id = ? AND user_id = ?',
+      'SELECT * FROM rides WHERE id = $1 AND user_id = $2',
       [rideId, req.user!.id]
     );
 
@@ -143,7 +131,7 @@ router.delete('/:id', authenticateToken, async (req: AuthRequest, res: express.R
       return res.status(404).json({ error: 'Ride not found' });
     }
 
-    await db.query('DELETE FROM rides WHERE id = ?', [rideId]);
+    await db.query('DELETE FROM rides WHERE id = $1', [rideId]);
 
     res.json({ message: 'Ride deleted successfully' });
   } catch (error) {
@@ -152,44 +140,75 @@ router.delete('/:id', authenticateToken, async (req: AuthRequest, res: express.R
   }
 });
 
-// Get ride summary
+// Get ride summary for the authenticated user
 router.get('/summary', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
     const db = getDatabase();
     
-    const summary = await db.query(
+    // Get total rides and cost
+    const totalStats = await db.query(
       `SELECT 
-        COUNT(*) as total_rides,
-        SUM(cost_usd) as total_cost,
-        AVG(cost_usd) as avg_cost,
-        SUM(CASE WHEN app_name = 'uber' THEN 1 ELSE 0 END) as uber_rides,
-        SUM(CASE WHEN app_name = 'uber' THEN cost_usd ELSE 0 END) as uber_cost,
-        SUM(CASE WHEN app_name = 'lyft' THEN 1 ELSE 0 END) as lyft_rides,
-        SUM(CASE WHEN app_name = 'lyft' THEN cost_usd ELSE 0 END) as lyft_cost,
-        SUM(CASE WHEN app_name = 'didi' THEN 1 ELSE 0 END) as didi_rides,
-        SUM(CASE WHEN app_name = 'didi' THEN cost_usd ELSE 0 END) as didi_cost
+         COUNT(*) as total_rides,
+         SUM(cost_usd) as total_cost,
+         AVG(cost_usd) as avg_cost
        FROM rides 
-       WHERE user_id = ?`,
+       WHERE user_id = $1`,
       [req.user!.id]
     );
 
-    const monthlyBreakdown = await db.query(
+    // Get rides by app
+    const appStats = await db.query(
       `SELECT 
-        strftime('%Y-%m', ride_date) as month,
-        COUNT(*) as rides,
-        SUM(cost_usd) as cost
+         app_name,
+         COUNT(*) as count,
+         SUM(cost_usd) as cost
        FROM rides 
-       WHERE user_id = ? 
-       GROUP BY strftime('%Y-%m', ride_date)
-       ORDER BY month DESC
-       LIMIT 12`,
+       WHERE user_id = $1
+       GROUP BY app_name`,
       [req.user!.id]
     );
 
-    res.json({
-      ...summary[0],
-      monthly_breakdown: monthlyBreakdown
+    // Get monthly breakdown
+    const monthlyStats = await db.query(
+      `SELECT 
+         DATE_TRUNC('month', ride_date) as month,
+         COUNT(*) as rides,
+         SUM(cost_usd) as cost
+       FROM rides 
+       WHERE user_id = $1
+       GROUP BY DATE_TRUNC('month', ride_date)
+       ORDER BY month DESC`,
+      [req.user!.id]
+    );
+
+    // Format the response
+    const summaryData = {
+      total_rides: totalStats[0]?.total_rides || 0,
+      total_cost: totalStats[0]?.total_cost || 0,
+      avg_cost: totalStats[0]?.avg_cost || 0,
+      rides_by_app: {
+        uber: { count: 0, cost: 0 },
+        lyft: { count: 0, cost: 0 },
+        didi: { count: 0, cost: 0 }
+      },
+      monthly_breakdown: monthlyStats.map(stat => ({
+        month: new Date(stat.month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        rides: stat.rides,
+        cost: stat.cost
+      }))
+    };
+
+    // Populate app stats
+    appStats.forEach(stat => {
+      if (summaryData.rides_by_app[stat.app_name as keyof typeof summaryData.rides_by_app]) {
+        summaryData.rides_by_app[stat.app_name as keyof typeof summaryData.rides_by_app] = {
+          count: stat.count,
+          cost: stat.cost
+        };
+      }
     });
+
+    res.json(summaryData);
   } catch (error) {
     console.error('Error fetching ride summary:', error);
     res.status(500).json({ error: 'Internal server error' });

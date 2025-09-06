@@ -24,7 +24,7 @@ router.post('/login', [
     const db = getDatabase();
 
     const users = await db.query(
-      'SELECT * FROM users WHERE email = ?',
+      'SELECT * FROM users WHERE email = $1',
       [email]
     );
 
@@ -79,7 +79,7 @@ router.post('/register', authenticateToken, [
 
     try {
       await db.query(
-        'INSERT INTO users (email, password, name, role, department) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO users (email, password, name, role, department) VALUES ($1, $2, $3, $4, $5)',
         [email, hashedPassword, name, 'employee', department || null]
       );
 

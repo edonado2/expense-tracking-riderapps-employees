@@ -22,7 +22,7 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
     const db = getDatabase();
     
     const users = await db.query(
-      'SELECT id, email, name, role, department, created_at, updated_at FROM users WHERE id = ?',
+      'SELECT id, email, name, role, department, created_at, updated_at FROM users WHERE id = $1',
       [decoded.userId]
     );
 

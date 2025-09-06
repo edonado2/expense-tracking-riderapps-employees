@@ -1,32 +1,24 @@
 import express from 'express';
-import { authenticateToken, AuthRequest, requireAdmin } from '../middleware/auth';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { getDatabase } from '../database/config';
-import { SpendingSummary } from '../types';
 
 const router = express.Router();
 
-// Get all spending data (Admin only)
+// Middleware to check if user is admin
+const requireAdmin = (req: AuthRequest, res: express.Response, next: express.NextFunction) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
+
+// Get overall spending data
 router.get('/spending', authenticateToken, requireAdmin, async (req: AuthRequest, res: express.Response) => {
   try {
     const db = getDatabase();
-    
-    // Get all users with their spending data
-    const users = await db.query(
-      `SELECT 
-         u.id,
-         u.name,
-         u.department,
-         COUNT(r.id) as total_rides,
-         COALESCE(SUM(r.cost_usd), 0) as total_cost
-       FROM users u
-       LEFT JOIN rides r ON u.id = r.user_id
-       GROUP BY u.id, u.name, u.department
-       ORDER BY total_cost DESC`
-    );
+    const users = await db.query('SELECT id, name, email, department FROM users');
 
-    // Get app usage breakdown for each user
-    const spendingData: SpendingSummary[] = [];
-    
+    const spendingData = [];
     for (const user of users) {
       const appUsage = await db.query(
         `SELECT 
@@ -34,7 +26,7 @@ router.get('/spending', authenticateToken, requireAdmin, async (req: AuthRequest
            COUNT(*) as count,
            SUM(cost_usd) as cost
          FROM rides 
-         WHERE user_id = ?
+         WHERE user_id = $1
          GROUP BY app_name`,
         [user.id]
       );
@@ -52,28 +44,17 @@ router.get('/spending', authenticateToken, requireAdmin, async (req: AuthRequest
         };
       });
 
-      // Get monthly breakdown
-      const monthlyBreakdown = await db.query(
-        `SELECT 
-           strftime('%Y-%m', ride_date) as month,
-           COUNT(*) as rides,
-           SUM(cost_usd) as cost
-         FROM rides 
-         WHERE user_id = ?
-         GROUP BY strftime('%Y-%m', ride_date)
-         ORDER BY month DESC
-         LIMIT 12`,
-        [user.id]
-      );
+      const totalRides = appUsage.reduce((sum: number, app: any) => sum + app.count, 0);
+      const totalCost = appUsage.reduce((sum: number, app: any) => sum + app.cost, 0);
 
       spendingData.push({
         user_id: user.id,
-        user_name: user.name,
+        name: user.name,
+        email: user.email,
         department: user.department,
-        total_rides: user.total_rides,
-        total_cost: user.total_cost,
-        rides_by_app: ridesByApp,
-        monthly_breakdown: monthlyBreakdown
+        total_rides: totalRides,
+        total_cost: totalCost,
+        rides_by_app: ridesByApp
       });
     }
 
@@ -84,7 +65,32 @@ router.get('/spending', authenticateToken, requireAdmin, async (req: AuthRequest
   }
 });
 
-// Get admin statistics (Admin only)
+// Get department spending
+router.get('/departments', authenticateToken, requireAdmin, async (req: AuthRequest, res: express.Response) => {
+  try {
+    const db = getDatabase();
+    const departmentStats = await db.query(
+      `SELECT 
+         u.department,
+         COUNT(DISTINCT u.id) as employee_count,
+         COUNT(r.id) as total_rides,
+         SUM(r.cost_usd) as total_cost,
+         AVG(r.cost_usd) as avg_cost_per_ride
+       FROM users u
+       LEFT JOIN rides r ON u.id = r.user_id
+       WHERE u.department IS NOT NULL
+       GROUP BY u.department
+       ORDER BY total_cost DESC`
+    );
+
+    res.json(departmentStats);
+  } catch (error) {
+    console.error('Error fetching department data:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get admin statistics
 router.get('/stats', authenticateToken, requireAdmin, async (req: AuthRequest, res: express.Response) => {
   try {
     const db = getDatabase();
@@ -94,8 +100,8 @@ router.get('/stats', authenticateToken, requireAdmin, async (req: AuthRequest, r
       `SELECT 
          COUNT(DISTINCT u.id) as total_users,
          COUNT(r.id) as total_rides,
-         COALESCE(SUM(r.cost_usd), 0) as total_spending,
-         COALESCE(AVG(r.cost_usd), 0) as avg_cost_per_ride
+         SUM(r.cost_usd) as total_spending,
+         AVG(r.cost_usd) as avg_cost_per_ride
        FROM users u
        LEFT JOIN rides r ON u.id = r.user_id`
     );
@@ -115,20 +121,35 @@ router.get('/stats', authenticateToken, requireAdmin, async (req: AuthRequest, r
     // Department stats
     const departmentStats = await db.query(
       `SELECT 
-         COALESCE(u.department, 'No Department') as department,
-         COUNT(DISTINCT u.id) as user_count,
+         u.department,
+         COUNT(DISTINCT u.id) as employee_count,
          COUNT(r.id) as total_rides,
-         COALESCE(SUM(r.cost_usd), 0) as total_cost
+         SUM(r.cost_usd) as total_cost,
+         AVG(r.cost_usd) as avg_cost_per_ride
        FROM users u
        LEFT JOIN rides r ON u.id = r.user_id
+       WHERE u.department IS NOT NULL
        GROUP BY u.department
        ORDER BY total_cost DESC`
     );
 
+    // Monthly trends
+    const monthlyTrends = await db.query(
+      `SELECT
+         DATE_TRUNC('month', ride_date) as month,
+         COUNT(*) as rides,
+         SUM(cost_usd) as cost
+       FROM rides
+       GROUP BY DATE_TRUNC('month', ride_date)
+       ORDER BY month DESC
+       LIMIT 12`
+    );
+
     res.json({
-      overall: overallStats[0],
-      app_usage: appUsage,
-      departments: departmentStats
+      overall: overallStats[0] || { total_users: 0, total_rides: 0, total_spending: 0, avg_cost_per_ride: 0 },
+      app_usage: appUsage || [],
+      departments: departmentStats || [],
+      monthly_trends: monthlyTrends || []
     });
   } catch (error) {
     console.error('Error fetching admin stats:', error);
@@ -136,27 +157,24 @@ router.get('/stats', authenticateToken, requireAdmin, async (req: AuthRequest, r
   }
 });
 
-// Get department spending (Admin only)
-router.get('/departments', authenticateToken, requireAdmin, async (req: AuthRequest, res: express.Response) => {
+// Get user rides (Admin only)
+router.get('/users/:userId/rides', authenticateToken, requireAdmin, async (req: AuthRequest, res: express.Response) => {
   try {
+    const userId = parseInt(req.params.userId);
     const db = getDatabase();
     
-    const departmentData = await db.query(
-      `SELECT 
-         COALESCE(u.department, 'No Department') as department,
-         COUNT(DISTINCT u.id) as user_count,
-         COUNT(r.id) as total_rides,
-         COALESCE(SUM(r.cost_usd), 0) as total_cost,
-         COALESCE(AVG(r.cost_usd), 0) as avg_cost_per_ride
-       FROM users u
-       LEFT JOIN rides r ON u.id = r.user_id
-       GROUP BY u.department
-       ORDER BY total_cost DESC`
+    const rides = await db.query(
+      `SELECT r.*, u.name as user_name
+       FROM rides r
+       JOIN users u ON r.user_id = u.id
+       WHERE r.user_id = $1
+       ORDER BY r.ride_date DESC`,
+      [userId]
     );
 
-    res.json(departmentData);
+    res.json(rides);
   } catch (error) {
-    console.error('Error fetching department data:', error);
+    console.error('Error fetching user rides:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -169,7 +187,7 @@ router.get('/spending/:userId/monthly', authenticateToken, requireAdmin, async (
     
     // Get user info
     const users = await db.query(
-      'SELECT id, name, email, department FROM users WHERE id = ?',
+      'SELECT id, name, email, department FROM users WHERE id = $1',
       [userId]
     );
 
@@ -177,43 +195,54 @@ router.get('/spending/:userId/monthly', authenticateToken, requireAdmin, async (
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Get monthly breakdown
-    const monthlyData = await db.query(
+    const user = users[0];
+
+    // Get monthly spending
+    const monthlySpending = await db.query(
       `SELECT 
-         strftime('%Y-%m', ride_date) as month,
-         COUNT(*) as total_rides,
-         SUM(cost_usd) as total_cost,
-         AVG(cost_usd) as avg_cost_per_ride,
-         SUM(CASE WHEN app_name = 'uber' THEN cost_usd ELSE 0 END) as uber_cost,
-         SUM(CASE WHEN app_name = 'uber' THEN 1 ELSE 0 END) as uber_rides,
-         SUM(CASE WHEN app_name = 'lyft' THEN cost_usd ELSE 0 END) as lyft_cost,
-         SUM(CASE WHEN app_name = 'lyft' THEN 1 ELSE 0 END) as lyft_rides,
-         SUM(CASE WHEN app_name = 'didi' THEN cost_usd ELSE 0 END) as didi_cost,
-         SUM(CASE WHEN app_name = 'didi' THEN 1 ELSE 0 END) as didi_rides
+         DATE_TRUNC('month', ride_date) as month,
+         COUNT(*) as rides,
+         SUM(cost_usd) as cost
        FROM rides 
-       WHERE user_id = ?
-       GROUP BY strftime('%Y-%m', ride_date)
-       ORDER BY month DESC
-       LIMIT 12`,
+       WHERE user_id = $1
+       GROUP BY DATE_TRUNC('month', ride_date)
+       ORDER BY month DESC`,
       [userId]
     );
 
-    // Get recent rides
-    const recentRides = await db.query(
+    // Get app usage
+    const appUsage = await db.query(
       `SELECT 
-         r.*,
-         strftime('%Y-%m', r.ride_date) as month
-       FROM rides r
-       WHERE r.user_id = ?
-       ORDER BY r.ride_date DESC
-       LIMIT 50`,
+         app_name,
+         COUNT(*) as count,
+         SUM(cost_usd) as cost
+       FROM rides 
+       WHERE user_id = $1
+       GROUP BY app_name`,
       [userId]
     );
+
+    const ridesByApp = {
+      uber: { count: 0, cost: 0 },
+      lyft: { count: 0, cost: 0 },
+      didi: { count: 0, cost: 0 }
+    };
+
+    appUsage.forEach((app: any) => {
+      ridesByApp[app.app_name as keyof typeof ridesByApp] = {
+        count: app.count,
+        cost: app.cost
+      };
+    });
 
     res.json({
-      user: users[0],
-      monthly_breakdown: monthlyData,
-      recent_rides: recentRides
+      user,
+      monthly_spending: monthlySpending.map(stat => ({
+        month: new Date(stat.month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        rides: stat.rides,
+        cost: stat.cost
+      })),
+      rides_by_app: ridesByApp
     });
   } catch (error) {
     console.error('Error fetching user monthly spending:', error);
