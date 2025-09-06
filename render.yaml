@@ -18,9 +18,9 @@ services:
 
   - type: static
     name: uber-calculator-frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./build
-    rootDir: client
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: client/build
+    rootDir: .
     envVars:
       - key: REACT_APP_API_URL
         value: https://uber-calculator-backend.onrender.com/api
