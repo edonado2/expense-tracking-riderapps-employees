@@ -39,13 +39,13 @@ router.get('/spending', authenticateToken, requireAdmin, async (req: AuthRequest
 
       appUsage.forEach((app: any) => {
         ridesByApp[app.app_name as keyof typeof ridesByApp] = {
-          count: app.count,
-          cost: app.cost
+          count: parseInt(app.count.toString(), 10),
+          cost: parseFloat(app.cost.toString())
         };
       });
 
-      const totalRides = appUsage.reduce((sum: number, app: any) => sum + app.count, 0);
-      const totalCost = appUsage.reduce((sum: number, app: any) => sum + app.cost, 0);
+      const totalRides = appUsage.reduce((sum: number, app: any) => sum + parseInt(app.count.toString(), 10), 0);
+      const totalCost = appUsage.reduce((sum: number, app: any) => sum + parseFloat(app.cost.toString()), 0);
 
       // Get monthly breakdown for this user
       const monthlyBreakdown = await db.query(
@@ -70,8 +70,8 @@ router.get('/spending', authenticateToken, requireAdmin, async (req: AuthRequest
         rides_by_app: ridesByApp,
         monthly_breakdown: monthlyBreakdown.map((stat: any) => ({
           month: new Date(stat.month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-          rides: stat.rides,
-          cost: stat.cost
+          rides: parseInt(stat.rides.toString(), 10),
+          cost: parseFloat(stat.cost.toString())
         }))
       });
     }

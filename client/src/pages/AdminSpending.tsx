@@ -96,10 +96,15 @@ const AdminSpending: React.FC = () => {
     );
   }
 
-  // Calculate totals
-  const totalSpending = spendingData.reduce((sum, user) => sum + user.total_cost, 0);
-  const totalRides = spendingData.reduce((sum, user) => sum + user.total_rides, 0);
+  // Calculate totals with proper number conversion
+  const totalSpending = spendingData.reduce((sum, user) => sum + (parseFloat(user.total_cost) || 0), 0);
+  const totalRides = spendingData.reduce((sum, user) => sum + (parseInt(user.total_rides.toString(), 10) || 0), 0);
   const avgSpendingPerUser = spendingData.length > 0 ? totalSpending / spendingData.length : 0;
+  
+  console.log('Spending data:', spendingData);
+  console.log('Total rides calculated:', totalRides);
+  console.log('Total rides type:', typeof totalRides);
+  console.log('Sample user total_rides:', spendingData[0]?.total_rides, typeof spendingData[0]?.total_rides);
 
   // Prepare chart data
   const userSpendingChart = spendingData
@@ -160,7 +165,7 @@ const AdminSpending: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Rides</p>
-              <p className="text-2xl font-bold text-gray-900">{totalRides.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{(totalRides || 0).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -291,7 +296,7 @@ const AdminSpending: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {user.total_rides.toLocaleString()}
+                      {(parseInt(user.total_rides.toString(), 10) || 0).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {formatCurrency(user.total_cost)}
@@ -376,7 +381,7 @@ const AdminSpending: React.FC = () => {
                   </div>
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <Car className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-gray-900">{selectedUser.total_rides.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-gray-900">{(parseInt(selectedUser.total_rides.toString(), 10) || 0).toLocaleString()}</p>
                     <p className="text-sm text-gray-600">Total Rides</p>
                   </div>
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
