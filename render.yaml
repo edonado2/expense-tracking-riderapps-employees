@@ -18,25 +18,9 @@ services:
 
   - type: static
     name: uber-calculator-frontend
-    buildCommand: cd client && npm install && npm run build
-    staticPublishPath: client/build
-    rootDir: .
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*.js
-        name: Content-Type
-        value: application/javascript
-      - path: /*.css
-        name: Content-Type
-        value: text/css
-    redirects:
-      - from: /*
-        to: /index.html
-        status: 200
+    buildCommand: npm install && npm run build
+    staticPublishPath: build
+    rootDir: client
     envVars:
       - key: REACT_APP_API_URL
         value: https://uber-calculator-backend.onrender.com/api
-      - key: NODE_ENV
-        value: production
