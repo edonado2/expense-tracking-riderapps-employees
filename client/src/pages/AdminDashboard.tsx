@@ -53,7 +53,11 @@ const AdminDashboard: React.FC = () => {
           api.getDepartmentSpending()
         ]);
         
-        setStats(statsData);
+        setStats({
+          overall: statsData.overall || { total_users: 0, total_rides: 0, total_spending: 0, avg_cost_per_ride: 0 },
+          app_usage: statsData.app_usage || [],
+          monthly_trends: statsData.monthly_trends || []
+        });
         setDepartmentSpending(deptData);
       } catch (error) {
         console.error('Error fetching admin data:', error);
@@ -208,7 +212,7 @@ const AdminDashboard: React.FC = () => {
             <div className="card-header">
               <h3 className="text-lg font-semibold text-gray-900">Monthly Spending Trends</h3>
             </div>
-            {stats.monthly_trends.length > 0 ? (
+            {stats.monthly_trends && stats.monthly_trends.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={stats.monthly_trends.slice(0, 12).reverse()}>
                   <CartesianGrid strokeDasharray="3 3" />

@@ -104,11 +104,33 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  const pieData = summary ? [
-    { name: 'Uber', value: summary.rides_by_app.uber.cost, count: summary.rides_by_app.uber.count, color: getAppColor('uber') },
-    { name: 'Lyft', value: summary.rides_by_app.lyft.cost, count: summary.rides_by_app.lyft.count, color: getAppColor('lyft') },
-    { name: 'Didi', value: summary.rides_by_app.didi.cost, count: summary.rides_by_app.didi.count, color: getAppColor('didi') },
-  ].filter(item => item.value > 0) : [];
+  // Safe data extraction with comprehensive null checks
+  const ridesByApp = summary?.rides_by_app || {
+    uber: { count: 0, cost: 0 },
+    lyft: { count: 0, cost: 0 },
+    didi: { count: 0, cost: 0 }
+  };
+  
+  const pieData = [
+    { 
+      name: 'Uber', 
+      value: ridesByApp.uber?.cost || 0, 
+      count: ridesByApp.uber?.count || 0, 
+      color: getAppColor('uber') 
+    },
+    { 
+      name: 'Lyft', 
+      value: ridesByApp.lyft?.cost || 0, 
+      count: ridesByApp.lyft?.count || 0, 
+      color: getAppColor('lyft') 
+    },
+    { 
+      name: 'Didi', 
+      value: ridesByApp.didi?.cost || 0, 
+      count: ridesByApp.didi?.count || 0, 
+      color: getAppColor('didi') 
+    },
+  ].filter(item => item.value > 0);
 
   return (
     <div className="space-y-6">
@@ -174,7 +196,7 @@ const Dashboard: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">This Month</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {summary.monthly_breakdown.length > 0 
+                  {summary.monthly_breakdown && summary.monthly_breakdown.length > 0 
                     ? formatCurrency(summary.monthly_breakdown[0].cost)
                     : '$0.00'
                   }
@@ -225,7 +247,7 @@ const Dashboard: React.FC = () => {
             <div className="card-header">
               <h3 className="text-lg font-semibold text-gray-900">Monthly Spending</h3>
             </div>
-            {summary.monthly_breakdown.length > 0 ? (
+            {summary.monthly_breakdown && summary.monthly_breakdown.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={summary.monthly_breakdown.slice(0, 6).reverse()}>
                   <CartesianGrid strokeDasharray="3 3" />
