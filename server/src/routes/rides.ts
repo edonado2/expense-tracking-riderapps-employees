@@ -40,8 +40,10 @@ router.post('/', authenticateToken, [
   body('ride_date').isISO8601().withMessage('Ride date must be a valid date')
 ], async (req: AuthRequest, res: express.Response) => {
   try {
+    console.log('Received ride data:', req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
@@ -49,8 +51,8 @@ router.post('/', authenticateToken, [
     const db = getDatabase();
 
     // Validate that at least one cost field is provided
-    if (!rideData.cost_usd && !rideData.cost_clp) {
-      return res.status(400).json({ error: 'Either cost_usd or cost_clp must be provided' });
+    if ((!rideData.cost_usd || rideData.cost_usd <= 0) && (!rideData.cost_clp || rideData.cost_clp <= 0)) {
+      return res.status(400).json({ error: 'Either cost_usd or cost_clp must be provided and greater than 0' });
     }
 
     // Convert CLP to USD if needed using real-time exchange rates

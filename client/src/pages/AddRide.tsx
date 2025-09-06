@@ -72,7 +72,7 @@ const AddRide: React.FC = () => {
     try {
       await api.createRide({
         ...data,
-        distance_km: data.distance_km || 0,
+        distance_km: data.distance_km || undefined,
         ride_date: new Date(data.ride_date).toISOString()
       });
       navigate('/dashboard');
