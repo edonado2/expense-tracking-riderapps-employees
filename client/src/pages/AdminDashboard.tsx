@@ -5,10 +5,9 @@ import {
   DollarSign, 
   TrendingUp, 
   Car,
-  Building,
-  Calendar
+  Building
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 interface AdminStats {
   overall: {
@@ -76,12 +75,6 @@ const AdminDashboard: React.FC = () => {
     }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString + '-01').toLocaleDateString('en-US', {
-      month: 'short',
-      year: 'numeric'
-    });
-  };
 
   const getAppColor = (appName: string) => {
     switch (appName) {

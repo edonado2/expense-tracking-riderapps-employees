@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
-interface User {
+interface UserData {
   id: number;
   email: string;
   name: string;
@@ -31,10 +31,10 @@ interface UserFormData {
 }
 
 const AdminUsers: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 

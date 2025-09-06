@@ -9,7 +9,6 @@ import {
   TrendingUp,
   TrendingDown,
   BarChart3,
-  PieChart,
   MapPin,
   Clock
 } from 'lucide-react';
