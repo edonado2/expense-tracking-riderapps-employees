@@ -42,7 +42,7 @@ class CurrencyService {
         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
 
-      const data: ExchangeRateResponse = await response.json();
+      const data = await response.json() as ExchangeRateResponse;
 
       if (!data.success) {
         throw new Error('API returned unsuccessful response');
