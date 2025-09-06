@@ -160,7 +160,7 @@ const AdminSpending: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Rides</p>
-              <p className="text-2xl font-bold text-gray-900">{totalRides}</p>
+              <p className="text-2xl font-bold text-gray-900">{totalRides.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -291,7 +291,7 @@ const AdminSpending: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {user.total_rides}
+                      {user.total_rides.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {formatCurrency(user.total_cost)}
@@ -376,7 +376,7 @@ const AdminSpending: React.FC = () => {
                   </div>
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <Car className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-gray-900">{selectedUser.total_rides}</p>
+                    <p className="text-2xl font-bold text-gray-900">{selectedUser.total_rides.toLocaleString()}</p>
                     <p className="text-sm text-gray-600">Total Rides</p>
                   </div>
                   <div className="text-center p-4 bg-gray-50 rounded-lg">

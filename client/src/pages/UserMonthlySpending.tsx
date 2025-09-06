@@ -225,7 +225,7 @@ const UserMonthlySpending: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Rides</p>
-              <p className="text-2xl font-bold text-gray-900">{currentMonth.total_rides}</p>
+              <p className="text-2xl font-bold text-gray-900">{currentMonth.total_rides.toLocaleString()}</p>
               {ridesTrend !== 0 && (
                 <div className={`flex items-center text-sm ${ridesTrend > 0 ? 'text-red-600' : 'text-green-600'}`}>
                   {ridesTrend > 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}

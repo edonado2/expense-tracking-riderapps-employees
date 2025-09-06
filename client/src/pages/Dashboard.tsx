@@ -186,7 +186,7 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Rides</p>
-                <p className="text-2xl font-bold text-gray-900">{summary.total_rides}</p>
+                <p className="text-2xl font-bold text-gray-900">{summary.total_rides.toLocaleString()}</p>
               </div>
             </div>
           </div>
