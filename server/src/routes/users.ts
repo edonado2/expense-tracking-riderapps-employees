@@ -7,7 +7,7 @@ const router = express.Router();
 // Get all users (Admin only)
 router.get('/', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -26,7 +26,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: express.Respons
 // Get user by ID (Admin only)
 router.get('/:id', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -52,7 +52,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res: express.Resp
 // Update user (Admin only)
 router.put('/:id', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -85,7 +85,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res: express.Resp
 // Delete user (Admin only)
 router.delete('/:id', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
