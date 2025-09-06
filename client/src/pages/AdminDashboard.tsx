@@ -11,12 +11,10 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pi
 
 interface AdminStats {
   overall: {
-    total_employees: number;
+    total_users: number;
     total_rides: number;
     total_spending: number;
     avg_cost_per_ride: number;
-    max_ride_cost: number;
-    min_ride_cost: number;
   };
   app_usage: Array<{
     app_name: string;
@@ -52,6 +50,7 @@ const AdminDashboard: React.FC = () => {
           api.getDepartmentSpending()
         ]);
         
+        console.log('Admin stats data received:', statsData);
         setStats({
           overall: statsData.overall || { total_users: 0, total_rides: 0, total_spending: 0, avg_cost_per_ride: 0 },
           app_usage: statsData.app_usage || [],
@@ -122,7 +121,7 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Employees</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.overall.total_employees}</p>
+                <p className="text-2xl font-bold text-gray-900">{(stats.overall.total_users || 0).toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -134,7 +133,7 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Rides</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.overall.total_rides}</p>
+                <p className="text-2xl font-bold text-gray-900">{(stats.overall.total_rides || 0).toLocaleString()}</p>
               </div>
             </div>
           </div>

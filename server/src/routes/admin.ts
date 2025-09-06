@@ -163,8 +163,15 @@ router.get('/stats', authenticateToken, requireAdmin, async (req: AuthRequest, r
        LIMIT 12`
     );
 
+    const overall = overallStats[0] || { total_users: 0, total_rides: 0, total_spending: 0, avg_cost_per_ride: 0 };
+    
     res.json({
-      overall: overallStats[0] || { total_users: 0, total_rides: 0, total_spending: 0, avg_cost_per_ride: 0 },
+      overall: {
+        total_users: parseInt(overall.total_users.toString(), 10) || 0,
+        total_rides: parseInt(overall.total_rides.toString(), 10) || 0,
+        total_spending: parseFloat(overall.total_spending.toString()) || 0,
+        avg_cost_per_ride: parseFloat(overall.avg_cost_per_ride.toString()) || 0
+      },
       app_usage: appUsage || [],
       departments: departmentStats || [],
       monthly_trends: monthlyTrends || []
