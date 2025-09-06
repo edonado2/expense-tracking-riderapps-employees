@@ -48,7 +48,7 @@ export const initializeDatabase = async (): Promise<void> => {
     const adminUsers = await db.query('SELECT * FROM users WHERE email = $1', ['admin@company.com']);
     
     if (adminUsers.length === 0) {
-      const hashedPassword = await bcrypt.hash('admin123', 10);
+      const hashedPassword = bcrypt.hashSync('admin123', 10);
       await db.query(
         'INSERT INTO users (email, password, name, role, department) VALUES ($1, $2, $3, $4, $5)',
         ['admin@company.com', hashedPassword, 'Admin User', 'admin', 'IT']
@@ -62,7 +62,7 @@ export const initializeDatabase = async (): Promise<void> => {
     const employeeUsers = await db.query('SELECT * FROM users WHERE email = $1', ['employee@company.com']);
     
     if (employeeUsers.length === 0) {
-      const hashedPassword = await bcrypt.hash('employee123', 10);
+      const hashedPassword = bcrypt.hashSync('employee123', 10);
       await db.query(
         'INSERT INTO users (email, password, name, role, department) VALUES ($1, $2, $3, $4, $5)',
         ['employee@company.com', hashedPassword, 'Employee User', 'employee', 'Sales']
