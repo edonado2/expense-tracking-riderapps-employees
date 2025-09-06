@@ -47,6 +47,19 @@ router.get('/spending', authenticateToken, requireAdmin, async (req: AuthRequest
       const totalRides = appUsage.reduce((sum: number, app: any) => sum + app.count, 0);
       const totalCost = appUsage.reduce((sum: number, app: any) => sum + app.cost, 0);
 
+      // Get monthly breakdown for this user
+      const monthlyBreakdown = await db.query(
+        `SELECT 
+           DATE_TRUNC('month', ride_date) as month,
+           COUNT(*) as rides,
+           SUM(cost_usd) as cost
+         FROM rides 
+         WHERE user_id = $1
+         GROUP BY DATE_TRUNC('month', ride_date)
+         ORDER BY month DESC`,
+        [user.id]
+      );
+
       spendingData.push({
         user_id: user.id,
         name: user.name,
@@ -54,7 +67,12 @@ router.get('/spending', authenticateToken, requireAdmin, async (req: AuthRequest
         department: user.department,
         total_rides: totalRides,
         total_cost: totalCost,
-        rides_by_app: ridesByApp
+        rides_by_app: ridesByApp,
+        monthly_breakdown: monthlyBreakdown.map((stat: any) => ({
+          month: new Date(stat.month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          rides: stat.rides,
+          cost: stat.cost
+        }))
       });
     }
 
