@@ -88,6 +88,16 @@ const AdminDashboard: React.FC = () => {
     return appName.charAt(0).toUpperCase() + appName.slice(1);
   };
 
+  const formatMonthlyData = (data: any[]) => {
+    return data.map(item => ({
+      ...item,
+      formattedMonth: new Date(item.month).toLocaleDateString('en-US', { 
+        month: 'short', 
+        year: 'numeric' 
+      })
+    }));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -206,11 +216,19 @@ const AdminDashboard: React.FC = () => {
             </div>
             {stats.monthly_trends && stats.monthly_trends.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={stats.monthly_trends.slice(0, 12).reverse()}>
+                <LineChart data={formatMonthlyData(stats.monthly_trends.slice(0, 12).reverse())}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
+                  <XAxis dataKey="formattedMonth" />
                   <YAxis />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Tooltip 
+                    formatter={(value: number) => formatCurrency(value)}
+                    labelFormatter={(label: string, payload: any) => {
+                      if (payload && payload[0] && payload[0].payload) {
+                        return payload[0].payload.formattedMonth;
+                      }
+                      return label;
+                    }}
+                  />
                   <Line type="monotone" dataKey="cost" stroke="#3B82F6" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
