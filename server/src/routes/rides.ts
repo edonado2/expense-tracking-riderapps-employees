@@ -5,6 +5,12 @@ import { getDatabase } from '../database/config';
 import { CreateRideRequest, UpdateRideRequest } from '../types';
 import { currencyService } from '../services/currencyService';
 
+// Helper function to get database-agnostic date truncation
+const getDateTruncFunction = () => {
+  const isPostgreSQL = process.env.DATABASE_URL;
+  return isPostgreSQL ? "DATE_TRUNC('month', ride_date)" : "strftime('%Y-%m-01', ride_date)";
+};
+
 const router = express.Router();
 
 // Get all rides for the authenticated user
@@ -195,12 +201,12 @@ router.get('/summary', authenticateToken, async (req: AuthRequest, res: express.
     // Get monthly breakdown
     const monthlyStats = await db.query(
       `SELECT 
-         DATE_TRUNC('month', ride_date) as month,
+         ${getDateTruncFunction()} as month,
          COUNT(*) as rides,
          SUM(cost_usd) as cost
        FROM rides 
        WHERE user_id = $1
-       GROUP BY DATE_TRUNC('month', ride_date)
+       GROUP BY ${getDateTruncFunction()}
        ORDER BY month DESC`,
       [req.user!.id]
     );

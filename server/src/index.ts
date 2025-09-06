@@ -3,7 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import { initializeDatabase } from './database/init-new';
+import { initializeDatabase as initializePostgreSQL } from './database/init-new';
+import { initializeDatabase as initializeSQLite } from './database/init';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import rideRoutes from './routes/rides';
@@ -44,6 +45,9 @@ console.log('🚀 Starting server initialization...');
 console.log('📁 Current directory:', process.cwd());
 console.log('🔧 Environment:', process.env.NODE_ENV);
 console.log('🌐 Port:', PORT);
+
+// Choose the correct database initialization based on environment
+const initializeDatabase = process.env.DATABASE_URL ? initializePostgreSQL : initializeSQLite;
 
 initializeDatabase().then(() => {
   console.log('✅ Database initialized successfully');

@@ -59,7 +59,7 @@ export const initializeDatabase = async (): Promise<void> => {
           destination TEXT NOT NULL,
           distance_km REAL,
           duration_minutes INTEGER NOT NULL,
-          cost_usd REAL NOT NULL,
+          cost_usd REAL,
           cost_clp INTEGER,
           currency TEXT DEFAULT 'usd',
           ride_date DATETIME NOT NULL,
@@ -68,6 +68,19 @@ export const initializeDatabase = async (): Promise<void> => {
           FOREIGN KEY (user_id) REFERENCES users (id)
         )
       `);
+
+      // Add new columns if they don't exist (migration)
+      db.run(`ALTER TABLE rides ADD COLUMN cost_clp INTEGER`, (err) => {
+        if (err && !err.message.includes('duplicate column name')) {
+          console.error('Error adding cost_clp column:', err);
+        }
+      });
+      
+      db.run(`ALTER TABLE rides ADD COLUMN currency TEXT DEFAULT 'usd'`, (err) => {
+        if (err && !err.message.includes('duplicate column name')) {
+          console.error('Error adding currency column:', err);
+        }
+      });
 
       // Create default admin user
       db.get('SELECT COUNT(*) as count FROM users WHERE role = "admin"', (err, row: any) => {
