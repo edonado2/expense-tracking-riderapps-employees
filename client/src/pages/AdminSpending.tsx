@@ -355,7 +355,7 @@ const AdminSpending: React.FC = () => {
               <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-gray-900">
-                    {selectedUser.user_name} - Spending Details
+                    {selectedUser.name} - Spending Details
                   </h3>
                   <button
                     onClick={handleCloseDetails}
