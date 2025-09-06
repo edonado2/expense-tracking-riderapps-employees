@@ -116,4 +116,16 @@ router.get('/me', authenticateToken, (req: AuthRequest, res: express.Response) =
   res.json(req.user);
 });
 
+// Debug endpoint to check users (temporary)
+router.get('/debug/users', async (req: express.Request, res: express.Response) => {
+  try {
+    const db = getDatabase();
+    const users = await db.query('SELECT id, email, name, role, created_at FROM users ORDER BY id');
+    res.json(users);
+  } catch (error) {
+    console.error('Debug users error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

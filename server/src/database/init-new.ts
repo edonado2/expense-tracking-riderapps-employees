@@ -44,7 +44,7 @@ export const initializeDatabase = async (): Promise<void> => {
       )
     `);
 
-    // Check if admin user exists
+    // Check if admin user exists and recreate with correct password hash
     const adminUsers = await db.query('SELECT * FROM users WHERE email = $1', ['admin@company.com']);
     
     if (adminUsers.length === 0) {
@@ -55,10 +55,16 @@ export const initializeDatabase = async (): Promise<void> => {
       );
       console.log('Admin user created');
     } else {
-      console.log('Admin user already exists');
+      // Update existing admin user with correct password hash
+      const hashedPassword = bcrypt.hashSync('admin123', 10);
+      await db.query(
+        'UPDATE users SET password = $1 WHERE email = $2',
+        [hashedPassword, 'admin@company.com']
+      );
+      console.log('Admin user password updated');
     }
 
-    // Check if employee user exists
+    // Check if employee user exists and recreate with correct password hash
     const employeeUsers = await db.query('SELECT * FROM users WHERE email = $1', ['employee@company.com']);
     
     if (employeeUsers.length === 0) {
@@ -69,7 +75,13 @@ export const initializeDatabase = async (): Promise<void> => {
       );
       console.log('Employee user created');
     } else {
-      console.log('Employee user already exists');
+      // Update existing employee user with correct password hash
+      const hashedPassword = bcrypt.hashSync('employee123', 10);
+      await db.query(
+        'UPDATE users SET password = $1 WHERE email = $2',
+        [hashedPassword, 'employee@company.com']
+      );
+      console.log('Employee user password updated');
     }
 
     console.log('✅ Database initialization completed');
