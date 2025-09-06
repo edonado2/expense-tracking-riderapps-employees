@@ -14,9 +14,11 @@ export interface Ride {
   app_name: 'uber' | 'lyft' | 'didi';
   pickup_location: string;
   destination: string;
-  distance_km: number;
+  distance_km?: number;
   duration_minutes: number;
   cost_usd: number;
+  cost_clp?: number;
+  currency: 'usd' | 'clp';
   ride_date: string;
   notes?: string;
   created_at: string;
@@ -26,9 +28,11 @@ export interface CreateRideRequest {
   app_name: 'uber' | 'lyft' | 'didi';
   pickup_location: string;
   destination: string;
-  distance_km: number;
+  distance_km?: number;
   duration_minutes: number;
-  cost_usd: number;
+  cost_usd?: number;
+  cost_clp?: number;
+  currency: 'usd' | 'clp';
   ride_date: string;
   notes?: string;
 }
@@ -40,6 +44,8 @@ export interface UpdateRideRequest {
   distance_km?: number;
   duration_minutes?: number;
   cost_usd?: number;
+  cost_clp?: number;
+  currency?: 'usd' | 'clp';
   ride_date?: string;
   notes?: string;
 }

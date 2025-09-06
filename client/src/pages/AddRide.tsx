@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
@@ -8,9 +8,11 @@ interface RideFormData {
   app_name: 'uber' | 'lyft' | 'didi';
   pickup_location: string;
   destination: string;
-  distance_km: number;
+  distance_km?: number;
   duration_minutes: number;
-  cost_usd: number;
+  cost_usd?: number;
+  cost_clp?: number;
+  currency: 'usd' | 'clp';
   ride_date: string;
   notes?: string;
 }
@@ -19,23 +21,49 @@ const AddRide: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+  const [rateLoading, setRateLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-    watch
+    watch,
+    setValue
   } = useForm<RideFormData>({
     defaultValues: {
       app_name: 'uber',
-      ride_date: new Date().toISOString().split('T')[0]
+      ride_date: new Date().toISOString().split('T')[0],
+      currency: 'usd'
     }
   });
 
   const watchedDistance = watch('distance_km');
   const watchedDuration = watch('duration_minutes');
   const watchedAppName = watch('app_name');
+  const watchedCurrency = watch('currency');
+  const watchedCostUsd = watch('cost_usd');
+  const watchedCostClp = watch('cost_clp');
+
+  // Fetch exchange rate on component mount
+  useEffect(() => {
+    const fetchExchangeRate = async () => {
+      setRateLoading(true);
+      try {
+        const rateInfo = await api.getExchangeRate();
+        setExchangeRate(rateInfo.rate);
+      } catch (error) {
+        console.error('Failed to fetch exchange rate:', error);
+        // Fallback to approximate rate
+        setExchangeRate(900);
+      } finally {
+        setRateLoading(false);
+      }
+    };
+
+    fetchExchangeRate();
+  }, []);
 
   const onSubmit = async (data: RideFormData) => {
     setLoading(true);
@@ -44,6 +72,7 @@ const AddRide: React.FC = () => {
     try {
       await api.createRide({
         ...data,
+        distance_km: data.distance_km || 0,
         ride_date: new Date(data.ride_date).toISOString()
       });
       navigate('/dashboard');
@@ -173,7 +202,7 @@ const AddRide: React.FC = () => {
             <div>
               <label htmlFor="distance_km" className="block text-sm font-medium text-gray-700 mb-2">
                 <MapPin className="inline h-4 w-4 mr-2" />
-                Distance (km)
+                Distance (km) <span className="text-gray-500 text-sm">(Optional)</span>
               </label>
               <input
                 type="number"
@@ -181,7 +210,6 @@ const AddRide: React.FC = () => {
                 step="0.1"
                 min="0"
                 {...register('distance_km', { 
-                  required: 'Distance is required',
                   min: { value: 0.1, message: 'Distance must be greater than 0' }
                 })}
                 className={`input-field ${errors.distance_km ? 'border-red-300' : ''}`}
@@ -214,27 +242,118 @@ const AddRide: React.FC = () => {
             </div>
           </div>
 
+          {/* Currency Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              <DollarSign className="inline h-4 w-4 mr-2" />
+              Currency
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="relative">
+                <input
+                  type="radio"
+                  value="usd"
+                  {...register('currency', { required: 'Please select a currency' })}
+                  className="sr-only"
+                />
+                <div className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  errors.currency 
+                    ? 'border-red-300 bg-red-50' 
+                    : watchedCurrency === 'usd'
+                      ? 'border-primary-500 bg-primary-50 shadow-md'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                }`}>
+                  <div className="flex items-center justify-center space-x-2">
+                    <span className={`font-medium ${watchedCurrency === 'usd' ? 'text-primary-700' : 'text-gray-900'}`}>
+                      USD ($)
+                    </span>
+                  </div>
+                </div>
+              </label>
+              <label className="relative">
+                <input
+                  type="radio"
+                  value="clp"
+                  {...register('currency', { required: 'Please select a currency' })}
+                  className="sr-only"
+                />
+                <div className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  errors.currency 
+                    ? 'border-red-300 bg-red-50' 
+                    : watchedCurrency === 'clp'
+                      ? 'border-primary-500 bg-primary-50 shadow-md'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                }`}>
+                  <div className="flex items-center justify-center space-x-2">
+                    <span className={`font-medium ${watchedCurrency === 'clp' ? 'text-primary-700' : 	ext-gray-900'}`}>
+                      CLP ($)
+                    </span>
+                  </div>
+                </div>
+              </label>
+            </div>
+            {errors.currency && (
+              <p className="mt-1 text-sm text-red-600">{errors.currency.message}</p>
+            )}
+          </div>
+
           {/* Cost and Date */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="cost_usd" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor={watchedCurrency === 'usd' ? 'cost_usd' : 'cost_clp'} className="block text-sm font-medium text-gray-700 mb-2">
                 <DollarSign className="inline h-4 w-4 mr-2" />
-                Cost (USD)
+                Cost ({watchedCurrency === 'usd' ? 'USD' : 'CLP'})
               </label>
-              <input
-                type="number"
-                id="cost_usd"
-                step="0.01"
-                min="0"
-                {...register('cost_usd', { 
-                  required: 'Cost is required',
-                  min: { value: 0.01, message: 'Cost must be greater than 0' }
-                })}
-                className={`input-field ${errors.cost_usd ? 'border-red-300' : ''}`}
-                placeholder="0.00"
-              />
+              {watchedCurrency === 'usd' ? (
+                <input
+                  type="number"
+                  id="cost_usd"
+                  step="0.01"
+                  min="0"
+                  {...register('cost_usd', { 
+                    required: 'Cost is required',
+                    min: { value: 0.01, message: 'Cost must be greater than 0' }
+                  })}
+                  className={`input-field ${errors.cost_usd ? 'border-red-300' : ''}`}
+                  placeholder="0.00"
+                />
+              ) : (
+                <input
+                  type="number"
+                  id="cost_clp"
+                  step="1"
+                  min="0"
+                  {...register('cost_clp', { 
+                    required: 'Cost is required',
+                    min: { value: 1, message: 'Cost must be greater than 0' }
+                  })}
+                  className={`input-field ${errors.cost_clp ? 'border-red-300' : ''}`}
+                  placeholder="0"
+                />
+              )}
               {errors.cost_usd && (
                 <p className="mt-1 text-sm text-red-600">{errors.cost_usd.message}</p>
+              )}
+              {errors.cost_clp && (
+                <p className="mt-1 text-sm text-red-600">{errors.cost_clp.message}</p>
+              )}
+              {/* Show conversion preview */}
+              {watchedCurrency === 'clp' && watchedCostClp && exchangeRate && (
+                <p className="mt-1 text-sm text-gray-600">
+                  ≈ ${(watchedCostClp / exchangeRate).toFixed(2)} USD
+                  {rateLoading && <span className="ml-1 text-blue-500">(loading rate...)</span>}
+                </p>
+              )}
+              {watchedCurrency === 'usd' && watchedCostUsd && exchangeRate && (
+                <p className="mt-1 text-sm text-gray-600">
+                  ≈ ${(watchedCostUsd * exchangeRate).toFixed(0)} CLP
+                  {rateLoading && <span className="ml-1 text-blue-500">(loading rate...)</span>}
+                </p>
+              )}
+              {exchangeRate && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Current rate: 1 USD = {exchangeRate.toFixed(0)} CLP
+                </p>
               )}
             </div>
 
@@ -271,16 +390,32 @@ const AddRide: React.FC = () => {
           </div>
 
           {/* Estimated Cost Helper */}
-          {watchedDistance && watchedDuration && (
+          {watchedDuration && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="text-sm font-medium text-blue-900 mb-2">Cost Estimation Helper</h4>
-              <p className="text-sm text-blue-700">
-                Based on {watchedDistance} km and {watchedDuration} minutes, typical costs range from:
-              </p>
+              {watchedDistance ? (
+                <p className="text-sm text-blue-700">
+                  Based on {watchedDistance} km and {watchedDuration} minutes, typical costs range from:
+                </p>
+              ) : (
+                <p className="text-sm text-blue-700">
+                  Based on {watchedDuration} minutes duration, typical costs range from:
+                </p>
+              )}
               <ul className="text-sm text-blue-700 mt-1 space-y-1">
-                <li>• Uber: ${(watchedDistance * 1.5 + watchedDuration * 0.3).toFixed(2)} - ${(watchedDistance * 2.5 + watchedDuration * 0.5).toFixed(2)}</li>
-                <li>• Lyft: ${(watchedDistance * 1.4 + watchedDuration * 0.3).toFixed(2)} - ${(watchedDistance * 2.3 + watchedDuration * 0.5).toFixed(2)}</li>
-                <li>• Didi: ${(watchedDistance * 1.2 + watchedDuration * 0.2).toFixed(2)} - ${(watchedDistance * 2.0 + watchedDuration * 0.4).toFixed(2)}</li>
+                {watchedDistance ? (
+                  <>
+                    <li>• Uber: ${(watchedDistance * 1.5 + watchedDuration * 0.3).toFixed(2)} - ${(watchedDistance * 2.5 + watchedDuration * 0.5).toFixed(2)}</li>
+                    <li>• Lyft: ${(watchedDistance * 1.4 + watchedDuration * 0.3).toFixed(2)} - ${(watchedDistance * 2.3 + watchedDuration * 0.5).toFixed(2)}</li>
+                    <li>• Didi: ${(watchedDistance * 1.2 + watchedDuration * 0.2).toFixed(2)} - ${(watchedDistance * 2.0 + watchedDuration * 0.4).toFixed(2)}</li>
+                  </>
+                ) : (
+                  <>
+                    <li>• Uber: ${(watchedDuration * 0.3).toFixed(2)} - ${(watchedDuration * 0.5).toFixed(2)}</li>
+                    <li>• Lyft: ${(watchedDuration * 0.3).toFixed(2)} - ${(watchedDuration * 0.5).toFixed(2)}</li>
+                    <li>• Didi: ${(watchedDuration * 0.2).toFixed(2)} - ${(watchedDuration * 0.4).toFixed(2)}</li>
+                  </>
+                )}
               </ul>
             </div>
           )}

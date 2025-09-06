@@ -18,9 +18,11 @@ interface Ride {
   app_name: string;
   pickup_location: string;
   destination: string;
-  distance_km: number;
+  distance_km?: number;
   duration_minutes: number;
   cost_usd: number;
+  cost_clp?: number;
+  currency: 'usd' | 'clp';
   ride_date: string;
   notes?: string;
 }
@@ -68,11 +70,36 @@ const Dashboard: React.FC = () => {
     fetchData();
   }, []);
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number, currency: 'USD' | 'CLP' = 'USD') => {
+    if (currency === 'CLP') {
+      return new Intl.NumberFormat('es-CL', {
+        style: 'currency',
+        currency: 'CLP'
+      }).format(amount);
+    }
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
+  };
+
+  const formatRideCost = (ride: Ride) => {
+    if (ride.currency === 'clp' && ride.cost_clp) {
+      return (
+        <div>
+          <span className="font-medium">{formatCurrency(ride.cost_clp, 'CLP')}</span>
+          <span className="text-sm text-gray-500 ml-2">({formatCurrency(ride.cost_usd)})</span>
+        </div>
+      );
+    }
+    return (
+      <div>
+        <span className="font-medium">{formatCurrency(ride.cost_usd)}</span>
+        {ride.cost_clp && (
+          <span className="text-sm text-gray-500 ml-2">({formatCurrency(ride.cost_clp, 'CLP')})</span>
+        )}
+      </div>
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -282,16 +309,18 @@ const Dashboard: React.FC = () => {
                   />
                   <div>
                     <p className="font-medium text-gray-900">
-                      {getAppName(ride.app_name)} • {formatCurrency(ride.cost_usd)}
+                      {getAppName(ride.app_name)} • {formatRideCost(ride)}
                     </p>
                     <p className="text-sm text-gray-600">
                       {ride.pickup_location} → {ride.destination}
                     </p>
                     <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
-                      <span className="flex items-center">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {ride.distance_km.toFixed(1)} km
-                      </span>
+                      {ride.distance_km && (
+                        <span className="flex items-center">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {ride.distance_km.toFixed(1)} km
+                        </span>
+                      )}
                       <span className="flex items-center">
                         <Clock className="h-3 w-3 mr-1" />
                         {ride.duration_minutes} min

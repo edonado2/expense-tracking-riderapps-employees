@@ -45,9 +45,11 @@ interface RecentRide {
   app_name: string;
   pickup_location: string;
   destination: string;
-  distance_km: number;
+  distance_km?: number;
   duration_minutes: number;
   cost_usd: number;
+  cost_clp?: number;
+  currency: 'usd' | 'clp';
   ride_date: string;
   month: string;
 }
@@ -504,7 +506,7 @@ const UserMonthlySpending: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {ride.distance_km} km
+                          {ride.distance_km ? `${ride.distance_km} km` : 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <div className="flex items-center">

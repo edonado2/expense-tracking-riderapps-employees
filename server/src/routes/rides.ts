@@ -3,6 +3,7 @@ import { body, validationResult } from 'express-validator';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { getDatabase } from '../database/config';
 import { CreateRideRequest, UpdateRideRequest } from '../types';
+import { currencyService } from '../services/currencyService';
 
 const router = express.Router();
 
@@ -31,9 +32,11 @@ router.post('/', authenticateToken, [
   body('app_name').notEmpty().withMessage('App name is required'),
   body('pickup_location').notEmpty().withMessage('Pickup location is required'),
   body('destination').notEmpty().withMessage('Destination is required'),
-  body('distance_km').isNumeric().withMessage('Distance must be a number'),
+  body('distance_km').optional().isNumeric().withMessage('Distance must be a number'),
   body('duration_minutes').isInt().withMessage('Duration must be an integer'),
-  body('cost_usd').isNumeric().withMessage('Cost must be a number'),
+  body('cost_usd').optional().isNumeric().withMessage('Cost USD must be a number'),
+  body('cost_clp').optional().isInt().withMessage('Cost CLP must be an integer'),
+  body('currency').isIn(['usd', 'clp']).withMessage('Currency must be USD or CLP'),
   body('ride_date').isISO8601().withMessage('Ride date must be a valid date')
 ], async (req: AuthRequest, res: express.Response) => {
   try {
@@ -45,17 +48,36 @@ router.post('/', authenticateToken, [
     const rideData: CreateRideRequest = req.body;
     const db = getDatabase();
 
+    // Validate that at least one cost field is provided
+    if (!rideData.cost_usd && !rideData.cost_clp) {
+      return res.status(400).json({ error: 'Either cost_usd or cost_clp must be provided' });
+    }
+
+    // Convert CLP to USD if needed using real-time exchange rates
+    let costUsd = rideData.cost_usd;
+    let costClp = rideData.cost_clp;
+    
+    if (rideData.currency === 'clp' && rideData.cost_clp) {
+      // Convert CLP to USD using real-time exchange rate
+      costUsd = await currencyService.convertCLPToUSD(rideData.cost_clp);
+    } else if (rideData.currency === 'usd' && rideData.cost_usd) {
+      // Convert USD to CLP using real-time exchange rate
+      costClp = await currencyService.convertUSDToCLP(rideData.cost_usd);
+    }
+
     await db.query(
-      `INSERT INTO rides (user_id, app_name, pickup_location, destination, distance_km, duration_minutes, cost_usd, ride_date, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      `INSERT INTO rides (user_id, app_name, pickup_location, destination, distance_km, duration_minutes, cost_usd, cost_clp, currency, ride_date, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [
         req.user!.id,
         rideData.app_name,
         rideData.pickup_location,
         rideData.destination,
-        rideData.distance_km,
+        rideData.distance_km || null,
         rideData.duration_minutes,
-        rideData.cost_usd,
+        costUsd,
+        costClp || null,
+        rideData.currency,
         rideData.ride_date,
         rideData.notes || null
       ]
@@ -212,6 +234,17 @@ router.get('/summary', authenticateToken, async (req: AuthRequest, res: express.
   } catch (error) {
     console.error('Error fetching ride summary:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get current exchange rate
+router.get('/exchange-rate', authenticateToken, async (req: AuthRequest, res: express.Response) => {
+  try {
+    const rateInfo = await currencyService.getExchangeRateInfo();
+    res.json(rateInfo);
+  } catch (error) {
+    console.error('Error fetching exchange rate:', error);
+    res.status(500).json({ error: 'Failed to fetch exchange rate' });
   }
 });
 

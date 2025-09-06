@@ -102,6 +102,11 @@ class API {
     return response.data;
   }
 
+  async getExchangeRate() {
+    const response: AxiosResponse = await this.client.get('/rides/exchange-rate');
+    return response.data;
+  }
+
   // Users API (Admin only)
   async getUsers() {
     const response: AxiosResponse = await this.client.get('/users');
