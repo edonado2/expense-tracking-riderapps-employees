@@ -4,7 +4,6 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { initializeDatabase } from './database/init-new';
-import { migrateDatabase } from './database/migrate';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import rideRoutes from './routes/rides';
@@ -48,14 +47,11 @@ console.log('🌐 Port:', PORT);
 
 initializeDatabase().then(() => {
   console.log('✅ Database initialized successfully');
-  return migrateDatabase();
-}).then(() => {
-  console.log('✅ Database migration completed successfully');
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
   });
 }).catch((error) => {
-  console.error('❌ Failed to initialize database or run migration:', error);
+  console.error('❌ Failed to initialize database:', error);
   process.exit(1);
 });
