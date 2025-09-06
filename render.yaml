@@ -15,3 +15,12 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+
+  - type: static
+    name: uber-calculator-frontend
+    buildCommand: npm run build
+    staticPublishPath: ./build
+    rootDir: client
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://uber-calculator-backend.onrender.com/api
