@@ -85,7 +85,7 @@ const AdminUsers: React.FC = () => {
     }
   };
 
-  const handleEdit = (user: User) => {
+  const handleEdit = (user: UserData) => {
     setEditingUser(user);
     setValue('name', user.name);
     setValue('department', user.department || '');
