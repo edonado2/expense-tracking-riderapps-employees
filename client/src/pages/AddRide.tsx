@@ -285,7 +285,7 @@ const AddRide: React.FC = () => {
                       : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                 }`}>
                   <div className="flex items-center justify-center space-x-2">
-                    <span className={`font-medium ${watchedCurrency === 'clp' ? 'text-primary-700' : 	ext-gray-900'}`}>
+                    <span className={`font-medium ${watchedCurrency === 'clp' ? 'text-primary-700' : 'text-gray-900'}`}>
                       CLP ($)
                     </span>
                   </div>
